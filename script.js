@@ -2,6 +2,10 @@ let main = document.querySelector(".main"),
   bestHTML = document.querySelector(".best_score_counter"),
   scoreHTML = document.querySelector(".score_counter"),
   reset = document.querySelector(".reset"),
+  touchstartX = 0,
+  touchstartY = 0,
+  touchendX = 0,
+  touchendY = 0,
   move = true,
   score = 0,
   best = localStorage.getItem("best"),
@@ -72,6 +76,123 @@ function draw() {
   bestHTML.innerHTML = localStorage.getItem("best")
     ? localStorage.getItem("best")
     : 0;
+}
+
+main.addEventListener("touchstart", function (e) {
+  touchstartX = e.changedTouches[0].pageX;
+  touchstartY = e.changedTouches[0].pageY;
+});
+
+main.addEventListener("touchend", function (e) {
+  touchendX = e.changedTouches[0].pageX;
+  touchendY = e.changedTouches[0].pageY;
+
+  touchMove();
+});
+
+function touchMove() {
+  canCreate = false;
+  if (move) {
+    if (
+      (touchstartY > touchendY &&
+        touchendX <= touchstartX &&
+        touchstartY - touchendY > touchstartX - touchendX) ||
+      (touchstartY > touchendY &&
+        touchendX >= touchstartX &&
+        touchstartY - touchendY > touchendX - touchstartX)
+    ) {
+      for (let i = playField.length - 1; i >= 1; i--) {
+        for (let k = 0; k < playField[i].length; k++) {
+          if (
+            (playField[i][k] !== 0 && playField[i - 1][k] == 0) ||
+            (playField[i][k] == playField[i - 1][k] && playField[i][k] !== 0)
+          ) {
+            canCreate = true;
+            i = 1;
+            break;
+          }
+        }
+      }
+      moveUp();
+      uniteUp();
+      moveUp();
+    } else if (
+      (touchstartY < touchendY &&
+        touchendX <= touchstartX &&
+        touchendY - touchstartY > touchstartX - touchendX) ||
+      (touchstartY < touchendY &&
+        touchendX >= touchstartX &&
+        touchendY - touchstartY > touchendX - touchstartX)
+    ) {
+      for (let i = 0; i < playField.length - 2; i++) {
+        for (let k = 0; k < playField[i].length; k++) {
+          if (
+            (playField[i][k] !== 0 && playField[i + 1][k] == 0) ||
+            (playField[i][k] == playField[i + 1][k] && playField[i][k] !== 0)
+          ) {
+            canCreate = true;
+            i = 3;
+            break;
+          }
+        }
+      }
+      moveDown();
+      uniteDown();
+      moveDown();
+    } else if (
+      (touchstartX < touchendX &&
+        touchendY < touchstartY &&
+        touchendX - touchstartX >= touchstartY - touchendY) ||
+      (touchstartX < touchendX &&
+        touchendY >= touchstartY &&
+        touchendX - touchstartX > touchendY - touchstartY)
+    ) {
+      for (let i = 0; i < playField.length; i++) {
+        for (let k = 0; k < playField[i].length - 1; k++) {
+          if (
+            (playField[i][k] !== 0 && playField[i][k + 1] == 0) ||
+            (playField[i][k] == playField[i][k + 1] && playField[i][k] !== 0)
+          ) {
+            canCreate = true;
+            i = 3;
+            break;
+          }
+        }
+      }
+      moveRight();
+      uniteRight();
+      moveRight();
+    } else if (
+      (touchstartX > touchendX &&
+        touchendY <= touchstartY &&
+        touchstartX - touchendX > touchstartY - touchendY) ||
+      (touchstartX > touchendX &&
+        touchendY >= touchstartY &&
+        touchstartX - touchendX > touchendY - touchstartY)
+    ) {
+      for (let i = 0; i < playField.length; i++) {
+        for (let k = playField[i].length - 1; k >= 1; k--) {
+          if (
+            (playField[i][k] !== 0 && playField[i][k - 1] == 0) ||
+            (playField[i][k] == playField[i][k - 1] && playField[i][k] !== 0)
+          ) {
+            canCreate = true;
+            i = 3;
+            break;
+          }
+        }
+      }
+      moveLeft();
+      uniteLeft();
+      moveLeft();
+    }
+  }
+  canCreate ? createCellActive() : null;
+  isFinish();
+  if (score >= best) {
+    localStorage.setItem("best", score);
+  }
+  draw();
 }
 
 document.onkeydown = function (e) {
