@@ -2,10 +2,6 @@ let main = document.querySelector(".main"),
   bestHTML = document.querySelector(".best_score_counter"),
   scoreHTML = document.querySelector(".score_counter"),
   reset = document.querySelector(".reset"),
-  touchstartX = 0,
-  touchstartY = 0,
-  touchendX = 0,
-  touchendY = 0,
   move = true,
   score = 0,
   best = localStorage.getItem("best"),
@@ -76,78 +72,6 @@ function draw() {
   bestHTML.innerHTML = localStorage.getItem("best")
     ? localStorage.getItem("best")
     : 0;
-}
-
-document.addEventListener(
-  "touchstart",
-  function (e) {
-    touchstartX = e.changedTouches[0].pageX;
-    touchstartY = e.changedTouches[0].pageX;
-    console.log(touchstartX, touchstartY);
-  },
-  false
-);
-
-document.addEventListener(
-  "touchend",
-  function (e) {
-    touchendX = e.changedTouches[0].pageX;
-    touchendY = e.changedTouches[0].pageX;
-    console.log(touchendX, touchendY);
-    touchMove();
-  },
-  false
-);
-
-function touchMove() {
-  canCreate = false;
-  if (move) {
-    if (
-      touchstartY - touchendY > touchendX - touchstartX ||
-      touchstartY - touchendY > touchstartX - touchendX
-    ) {
-      for (let i = playField.length - 1; i >= 1; i--) {
-        for (let k = 0; k < playField[i].length; k++) {
-          if (
-            (playField[i][k] !== 0 && playField[i - 1][k] == 0) ||
-            (playField[i][k] == playField[i - 1][k] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 1;
-            break;
-          }
-        }
-      }
-      moveUp();
-      uniteUp();
-      moveUp();
-    } else if (
-      touchendY - touchstartY > touchstartX - touchendX ||
-      touchendY - touchstartY > touchendX - touchstartX
-    ) {
-      for (let i = 0; i < playField.length - 2; i++) {
-        for (let k = 0; k < playField[i].length; k++) {
-          if (
-            (playField[i][k] !== 0 && playField[i + 1][k] == 0) ||
-            (playField[i][k] == playField[i + 1][k] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 3;
-            break;
-          }
-        }
-      }
-      moveDown();
-      uniteDown();
-      moveDown();
-    }
-  }
-  canCreate ? createCellActive() : null;
-  isFinish();
-  if (score >= best) {
-    localStorage.setItem("best", score);
-  }
-  draw();
 }
 
 document.onkeydown = function (e) {
