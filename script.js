@@ -1,411 +1,213 @@
-let main = document.querySelector(".main"),
-  bestHTML = document.querySelector(".best_score_counter"),
-  scoreHTML = document.querySelector(".score_counter"),
-  reset = document.querySelector(".reset"),
-  touchstartX = 0,
-  touchstartY = 0,
-  touchendX = 0,
-  touchendY = 0,
-  move = true,
-  score = 0,
-  best = localStorage.getItem("best"),
-  playField = [
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-  ];
+class Game {
+  constructor() {
+    this.size = 4;
+    this.score = 0;
+    this.active = true;
+    this.grid = this._emptyGrid();
+    this._spawnTile();
+    this._spawnTile();
+  }
 
-function color(cell) {
-  switch (cell) {
-    case 2:
-      return "#E8DFD5";
-    case 4:
-      return "#EBE0CB";
-    case 8:
-      return "#E9B381";
-    case 16:
-      return "#E9996C";
-    case 32:
-      return "#D97A60";
-    case 64:
-      return "#F65E3B";
-    case 128:
-      return "#EDCF72";
-    case 256:
-      return "#EDCC61";
-    case 512:
-      return "#EDC850";
-    case 1024:
-      return "#EDC53F";
-    case 2048:
-      return "#EDC22E";
-    case 4096:
-      return "#F36774";
-    case 8192:
-      return "#F14B61";
+  _emptyGrid() {
+    return Array.from({ length: this.size }, () => Array(this.size).fill(0));
+  }
+
+  _spawnTile() {
+    const empty = [];
+    for (let r = 0; r < this.size; r++) {
+      for (let c = 0; c < this.size; c++) {
+        if (this.grid[r][c] === 0) empty.push([r, c]);
+      }
+    }
+    if (empty.length === 0) return;
+    const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+    this.grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+  }
+
+  _slide(row) {
+    const filtered = row.filter(v => v !== 0);
+    for (let i = 0; i < filtered.length - 1; i++) {
+      if (filtered[i] === filtered[i + 1]) {
+        filtered[i] *= 2;
+        this.score += filtered[i];
+        filtered.splice(i + 1, 1);
+      }
+    }
+    while (filtered.length < this.size) filtered.push(0);
+    return filtered;
+  }
+
+  _transpose(grid) {
+    return grid[0].map((_, c) => grid.map(row => row[c]));
+  }
+
+  _gridEqual(a, b) {
+    for (let r = 0; r < this.size; r++) {
+      for (let c = 0; c < this.size; c++) {
+        if (a[r][c] !== b[r][c]) return false;
+      }
+    }
+    return true;
+  }
+
+  move(direction) {
+    if (!this.active) return;
+
+    const prev = this.grid.map(row => [...row]);
+    let grid = this.grid.map(row => [...row]);
+
+    if (direction === 'left') {
+      grid = grid.map(row => this._slide(row));
+    } else if (direction === 'right') {
+      grid = grid.map(row => this._slide([...row].reverse()).reverse());
+    } else if (direction === 'up') {
+      grid = this._transpose(this._transpose(grid).map(row => this._slide(row)));
+    } else if (direction === 'down') {
+      grid = this._transpose(
+        this._transpose(grid).map(row => this._slide([...row].reverse()).reverse())
+      );
+    }
+
+    this.grid = grid;
+
+    if (!this._gridEqual(prev, this.grid)) {
+      this._spawnTile();
+    }
+
+    this._checkGameOver();
+  }
+
+  _checkGameOver() {
+    for (let r = 0; r < this.size; r++) {
+      for (let c = 0; c < this.size; c++) {
+        if (this.grid[r][c] === 0) return;
+        if (c < this.size - 1 && this.grid[r][c] === this.grid[r][c + 1]) return;
+        if (r < this.size - 1 && this.grid[r][c] === this.grid[r + 1][c]) return;
+      }
+    }
+    this.active = false;
+  }
+
+  reset() {
+    this.score = 0;
+    this.active = true;
+    this.grid = this._emptyGrid();
+    this._spawnTile();
+    this._spawnTile();
   }
 }
-function createField() {
-  playField[~~(Math.random() * 4)][~~(Math.random() * 4)] =
-    ~~(Math.random() * 10) >= 1 ? 2 : 4;
-}
-createField();
-createField();
-function draw() {
-  mainInnerHtml = "";
-  for (let i = 0; i < playField.length; i++) {
-    for (let k = 0; k < playField[i].length; k++) {
-      if (playField[i][k] === 0) {
-        mainInnerHtml += `<div class='cell'></div>`;
-      } else {
-        if (playField[i][k] !== 2 && playField[i][k] !== 4) {
-          mainInnerHtml += `<div class='cell' style="background-color:${color(
-            playField[i][k]
-          )}; color:#F9F6F2">${playField[i][k]}</div>`;
+
+class Renderer {
+  constructor(game) {
+    this.game = game;
+    this.mainEl = document.querySelector('.main');
+    this.scoreEl = document.querySelector('.score_counter');
+    this.bestEl = document.querySelector('.best_score_counter');
+  }
+
+  render() {
+    const { grid, score, active } = this.game;
+
+    this.mainEl.classList.toggle('game-over', !active);
+
+    let html = '';
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid[r].length; c++) {
+        const val = grid[r][c];
+        if (val === 0) {
+          html += `<div class="cell"></div>`;
         } else {
-          mainInnerHtml += `<div class='cell' style="background-color:${color(
-            playField[i][k]
-          )}">${playField[i][k]}</div>`;
+          html += `<div class="cell tile-${val}">${val}</div>`;
         }
       }
     }
+    this.mainEl.innerHTML = html;
+
+    this.scoreEl.textContent = score;
+
+    const best = parseInt(localStorage.getItem('best') || '0', 10);
+    if (score > best) {
+      localStorage.setItem('best', score);
+      this.bestEl.textContent = score;
+    } else {
+      this.bestEl.textContent = best;
+    }
   }
-  main.innerHTML = mainInnerHtml;
-  scoreHTML.innerHTML = score;
-  bestHTML.innerHTML = localStorage.getItem("best")
-    ? localStorage.getItem("best")
-    : 0;
 }
 
-main.addEventListener("touchstart", function (e) {
-  touchstartX = e.changedTouches[0].pageX;
-  touchstartY = e.changedTouches[0].pageY;
-});
+class InputManager {
+  constructor(onMove, onReset) {
+    this.onMove = onMove;
+    this.onReset = onReset;
+    this._touchStartX = 0;
+    this._touchStartY = 0;
+    this._minSwipeDistance = 30;
 
-main.addEventListener("touchend", function (e) {
-  touchendX = e.changedTouches[0].pageX;
-  touchendY = e.changedTouches[0].pageY;
-
-  touchMove();
-});
-
-function touchMove() {
-  canCreate = false;
-  if (move) {
-    if (
-      (touchstartY > touchendY &&
-        touchendX <= touchstartX &&
-        touchstartY - touchendY > touchstartX - touchendX) ||
-      (touchstartY > touchendY &&
-        touchendX >= touchstartX &&
-        touchstartY - touchendY > touchendX - touchstartX)
-    ) {
-      for (let i = playField.length - 1; i >= 1; i--) {
-        for (let k = 0; k < playField[i].length; k++) {
-          if (
-            (playField[i][k] !== 0 && playField[i - 1][k] == 0) ||
-            (playField[i][k] == playField[i - 1][k] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 1;
-            break;
-          }
-        }
-      }
-      moveUp();
-      uniteUp();
-      moveUp();
-    } else if (
-      (touchstartY < touchendY &&
-        touchendX <= touchstartX &&
-        touchendY - touchstartY > touchstartX - touchendX) ||
-      (touchstartY < touchendY &&
-        touchendX >= touchstartX &&
-        touchendY - touchstartY > touchendX - touchstartX)
-    ) {
-      for (let i = 0; i < playField.length - 2; i++) {
-        for (let k = 0; k < playField[i].length; k++) {
-          if (
-            (playField[i][k] !== 0 && playField[i + 1][k] == 0) ||
-            (playField[i][k] == playField[i + 1][k] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 3;
-            break;
-          }
-        }
-      }
-      moveDown();
-      uniteDown();
-      moveDown();
-    } else if (
-      (touchstartX < touchendX &&
-        touchendY < touchstartY &&
-        touchendX - touchstartX >= touchstartY - touchendY) ||
-      (touchstartX < touchendX &&
-        touchendY >= touchstartY &&
-        touchendX - touchstartX > touchendY - touchstartY)
-    ) {
-      for (let i = 0; i < playField.length; i++) {
-        for (let k = 0; k < playField[i].length - 1; k++) {
-          if (
-            (playField[i][k] !== 0 && playField[i][k + 1] == 0) ||
-            (playField[i][k] == playField[i][k + 1] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 3;
-            break;
-          }
-        }
-      }
-      moveRight();
-      uniteRight();
-      moveRight();
-    } else if (
-      (touchstartX > touchendX &&
-        touchendY <= touchstartY &&
-        touchstartX - touchendX > touchstartY - touchendY) ||
-      (touchstartX > touchendX &&
-        touchendY >= touchstartY &&
-        touchstartX - touchendX > touchendY - touchstartY)
-    ) {
-      for (let i = 0; i < playField.length; i++) {
-        for (let k = playField[i].length - 1; k >= 1; k--) {
-          if (
-            (playField[i][k] !== 0 && playField[i][k - 1] == 0) ||
-            (playField[i][k] == playField[i][k - 1] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 3;
-            break;
-          }
-        }
-      }
-      moveLeft();
-      uniteLeft();
-      moveLeft();
-    }
+    this._bindKeyboard();
+    this._bindTouch();
+    this._bindReset();
   }
-  canCreate ? createCellActive() : null;
-  isFinish();
-  if (score >= best) {
-    localStorage.setItem("best", score);
+
+  _bindKeyboard() {
+    document.addEventListener('keydown', e => {
+      const map = {
+        ArrowLeft: 'left',  KeyA: 'left',
+        ArrowRight: 'right', KeyD: 'right',
+        ArrowUp: 'up',      KeyW: 'up',
+        ArrowDown: 'down',  KeyS: 'down',
+      };
+      const direction = map[e.code];
+      if (direction) {
+        e.preventDefault();
+        this.onMove(direction);
+      }
+    });
   }
-  draw();
+
+  _bindTouch() {
+    const el = document.querySelector('.main');
+    el.addEventListener('touchstart', e => {
+      this._touchStartX = e.changedTouches[0].pageX;
+      this._touchStartY = e.changedTouches[0].pageY;
+    }, { passive: true });
+
+    el.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].pageX - this._touchStartX;
+      const dy = e.changedTouches[0].pageY - this._touchStartY;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      if (Math.max(absDx, absDy) < this._minSwipeDistance) return;
+
+      if (absDx > absDy) {
+        this.onMove(dx > 0 ? 'right' : 'left');
+      } else {
+        this.onMove(dy > 0 ? 'down' : 'up');
+      }
+    }, { passive: true });
+  }
+
+  _bindReset() {
+    document.querySelector('.reset').addEventListener('click', this.onReset);
+  }
 }
 
-document.onkeydown = function (e) {
-  canCreate = false;
-  if (move) {
-    if (e.keyCode === 37 || e.keyCode === 65) {
-      for (let i = 0; i < playField.length; i++) {
-        for (let k = playField[i].length - 1; k >= 1; k--) {
-          if (
-            (playField[i][k] !== 0 && playField[i][k - 1] == 0) ||
-            (playField[i][k] == playField[i][k - 1] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 3;
-            break;
-          }
-        }
+class Controller {
+  constructor() {
+    this.game = new Game();
+    this.renderer = new Renderer(this.game);
+    this.input = new InputManager(
+      direction => {
+        this.game.move(direction);
+        this.renderer.render();
+      },
+      () => {
+        this.game.reset();
+        this.renderer.render();
       }
-      moveLeft();
-      uniteLeft();
-      moveLeft();
-    } else if (e.keyCode === 39 || e.keyCode === 68) {
-      for (let i = 0; i < playField.length; i++) {
-        for (let k = 0; k < playField[i].length - 1; k++) {
-          if (
-            (playField[i][k] !== 0 && playField[i][k + 1] == 0) ||
-            (playField[i][k] == playField[i][k + 1] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 3;
-            break;
-          }
-        }
-      }
-      moveRight();
-      uniteRight();
-      moveRight();
-    } else if (e.keyCode === 38 || e.keyCode === 87) {
-      for (let i = playField.length - 1; i >= 1; i--) {
-        for (let k = 0; k < playField[i].length; k++) {
-          if (
-            (playField[i][k] !== 0 && playField[i - 1][k] == 0) ||
-            (playField[i][k] == playField[i - 1][k] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 1;
-            break;
-          }
-        }
-      }
-      moveUp();
-      uniteUp();
-      moveUp();
-    } else if (e.keyCode === 40 || e.keyCode === 83) {
-      for (let i = 0; i < playField.length - 2; i++) {
-        for (let k = 0; k < playField[i].length; k++) {
-          if (
-            (playField[i][k] !== 0 && playField[i + 1][k] == 0) ||
-            (playField[i][k] == playField[i + 1][k] && playField[i][k] !== 0)
-          ) {
-            canCreate = true;
-            i = 3;
-            break;
-          }
-        }
-      }
-      moveDown();
-      uniteDown();
-      moveDown();
-    }
-  }
-  canCreate ? createCellActive() : null;
-  isFinish();
-  if (score >= best) {
-    localStorage.setItem("best", score);
-  }
-  draw();
-};
-reset.onclick = function reset() {
-  playField = [
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-  ];
-  createField();
-  createField();
-  draw();
-};
-function isFinish() {
-  counter = 0;
-  for (let i = 0; i < playField.length - 1; i++) {
-    for (let k = 0; k < playField[i].length; k++) {
-      if (playField[i][k] == playField[i + 1][k] && playField[i][k] !== 0) {
-        return;
-      }
-    }
-  }
-  for (let i = 0; i < playField.length; i++) {
-    for (let k = 0; k < playField[i].length - 1; k++) {
-      if (playField[i][k] == playField[i][k + 1] && playField[i][k] !== 0) {
-        return;
-      }
-    }
-  }
-  for (let i = 0; i < playField.length; i++) {
-    for (let k = 0; k < playField[i].length; k++) {
-      if (playField[i][k] == 0) {
-        counter++;
-      }
-    }
-  }
-  if (counter == 0) {
-    main.style.opacity = ".4";
-    move = false;
+    );
+    this.renderer.render();
   }
 }
-function uniteLeft() {
-  for (let i = 0; i < playField.length; i++) {
-    for (let k = 0; k < playField[i].length; k++) {
-      if (playField[i][k] === playField[i][k + 1]) {
-        playField[i][k] *= 2;
-        score += playField[i][k];
-        playField[i][k + 1] = 0;
-      }
-    }
-  }
-}
-function moveLeft() {
-  for (let i = 0; i < playField.length; i++) {
-    for (let k = playField[i].length - 1; k >= 0; k--) {
-      if (playField[i][k] === 0) {
-        playField[i].splice(k, 1);
-        playField[i].push(0);
-      }
-    }
-  }
-}
-function uniteRight() {
-  for (let i = 0; i < playField.length; i++) {
-    for (let k = playField[i].length - 1; k >= 0; k--) {
-      if (playField[i][k] === playField[i][k - 1]) {
-        playField[i][k] *= 2;
-        score += playField[i][k];
-        playField[i][k - 1] = 0;
-      }
-    }
-  }
-}
-function moveRight() {
-  for (let i = 0; i < playField.length; i++) {
-    for (let k = 0; k < playField[i].length; k++) {
-      if (playField[i][k] === 0) {
-        playField[i].splice(k, 1);
-        playField[i].unshift(0);
-      }
-    }
-  }
-}
-function uniteUp() {
-  for (i = 0; i < playField.length - 1; i++) {
-    for (k = 0; k < playField.length; k++) {
-      if (playField[i][k] === playField[i + 1][k]) {
-        playField[i][k] *= 2;
-        score += playField[i][k];
-        playField[i + 1][k] = 0;
-      }
-    }
-  }
-}
-function moveUp() {
-  for (j = 0; j < playField.length; j++) {
-    for (i = 0; i < playField.length - 1; i++) {
-      for (k = 0; k < playField.length; k++) {
-        if (playField[i][k] === 0) {
-          playField[i][k] = playField[i + 1][k];
-          playField[i + 1][k] = 0;
-        }
-      }
-    }
-  }
-}
-function uniteDown() {
-  for (i = playField.length - 1; i > 0; i--) {
-    for (k = 0; k < playField.length; k++) {
-      if (playField[i][k] === playField[i - 1][k]) {
-        playField[i][k] *= 2;
-        score += playField[i][k];
-        playField[i - 1][k] = 0;
-      }
-    }
-  }
-}
-function moveDown() {
-  for (j = playField.length; j > 0; j--) {
-    for (i = playField.length - 1; i > 0; i--) {
-      for (k = 0; k < playField.length; k++) {
-        if (playField[i][k] === 0) {
-          playField[i][k] = playField[i - 1][k];
-          playField[i - 1][k] = 0;
-        }
-      }
-    }
-  }
-}
-function createCellActive() {
-  while (true) {
-    let row = Math.floor(Math.random() * 4);
-    let col = Math.floor(Math.random() * 4);
-    if (playField[row][col] === 0) {
-      playField[row][col] = 2 * Math.ceil(Math.random() * 2);
-      return;
-    }
-  }
-}
-draw();
+
+new Controller();
