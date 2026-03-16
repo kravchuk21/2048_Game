@@ -4,35 +4,60 @@
   box-sizing: border-box;
   font-family: "Roboto", sans-serif;
 }
-.main {
-  border: 10px solid #bbada0;
-  width: 500px;
-  height: 500px;
-  border-radius: 8px;
-  margin-top: 3rem;
-  background-color: #cdc1b4;
-}
-.connainer {
+
+.container {
   width: 500px;
   margin: 3rem auto;
 }
+
+.main {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 3rem;
+  background-color: #bbada0;
+  width: 500px;
+  height: 500px;
+}
+
+.main.game-over {
+  opacity: 0.4;
+}
+
 .cell {
-  float: left;
-  border: 7px solid #bbada0;
-  width: 120px;
-  height: 120px;
-  font-size: 47px;
-  color: #776e65;
+  border-radius: 4px;
+  background-color: #cdc1b4;
   display: flex;
   justify-content: center;
-  padding-top: 27px;
+  align-items: center;
+  font-size: 47px;
   font-weight: bold;
+  color: #776e65;
 }
+
+.tile-2   { background-color: #E8DFD5; color: #776e65; }
+.tile-4   { background-color: #EBE0CB; color: #776e65; }
+.tile-8   { background-color: #E9B381; color: #F9F6F2; }
+.tile-16  { background-color: #E9996C; color: #F9F6F2; }
+.tile-32  { background-color: #D97A60; color: #F9F6F2; }
+.tile-64  { background-color: #F65E3B; color: #F9F6F2; }
+.tile-128 { background-color: #EDCF72; color: #F9F6F2; font-size: 38px; }
+.tile-256 { background-color: #EDCC61; color: #F9F6F2; font-size: 38px; }
+.tile-512 { background-color: #EDC850; color: #F9F6F2; font-size: 38px; }
+.tile-1024 { background-color: #EDC53F; color: #F9F6F2; font-size: 30px; }
+.tile-2048 { background-color: #EDC22E; color: #F9F6F2; font-size: 30px; }
+.tile-4096 { background-color: #F36774; color: #F9F6F2; font-size: 30px; }
+.tile-8192 { background-color: #F14B61; color: #F9F6F2; font-size: 30px; }
+
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .score {
   background-color: #bbada0;
   color: white;
@@ -41,6 +66,7 @@
   padding: 5px 15px;
   margin-right: 5px;
 }
+
 .best {
   background-color: #bbada0;
   color: white;
@@ -48,13 +74,16 @@
   text-align: center;
   padding: 5px 15px;
 }
+
 .scores_container {
   display: flex;
 }
+
 .score_counter {
   font-size: 24px;
   font-weight: bold;
 }
+
 .best_score_counter {
   font-size: 24px;
   font-weight: bold;
@@ -65,6 +94,7 @@
   display: flex;
   justify-content: flex-end;
 }
+
 .navbtn {
   background-color: #bbada0;
   color: white;
@@ -72,7 +102,9 @@
   text-align: center;
   padding: 5px 15px;
   margin-right: 5px;
+  cursor: pointer;
 }
+
 .logo {
   font-size: 80px;
   font-weight: bold;
